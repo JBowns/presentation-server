@@ -8,6 +8,7 @@ class PresentationServer {
     constructor(presentations, config) {
 
         config = config ? config : {};
+        presentations = presentations ? presentations : [];
 
         this.config = Object.assign({
             resources: __dirname + '/../node_modules',
