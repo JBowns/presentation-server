@@ -1,0 +1,20 @@
+{
+  "name": "session-service-presentation",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "start": "nodemon -e js,html,mustache index.js "
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "express": "^4.15.5",
+    "mustache": "^2.3.0",
+    "reveal.js": "git+ssh://git@github.com/hakimel/reveal.js.git",
+    "highlight.js": "git+ssh://git@github.com:isagalaev/highlight.js.git"
+  },
+  "devDependencies": {
+    "nodemon": "^1.12.1"
+  }
+}
