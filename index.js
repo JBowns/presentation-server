@@ -7,4 +7,4 @@ let server = PresentationServer([{
     theme: 'black'
 }]);
 
-server.start(8080);
+server.start(80);

@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+	<meta charset="utf-8">
+
+	<title>{{title}}</title>
+
+	<meta name="apple-mobile-web-app-capable" content="yes">
+	<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+
+	<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, minimal-ui">
+
+	<link rel="stylesheet" href="/resources/reveal.js/css/reveal.css">
+	<link rel="stylesheet" href="/themes/{{theme}}.css" id="theme">
+
+	<style>
+	.note {
+		padding: 10px 20%;
+		text-align: center;
+		font-family: "Open Sans", sans-serif;
+		font-size: 80%;
+		font-weight: normal;
+		color: #eee;
+	}
+	</style>
+
+</head>
+
+<body><p class="note">Use your left/right arrows to switch between different themes and the up/down arrows to select different code highlight styles</p>
+	
+
+	<div class="reveal">
+		<div class="slides">
+{{{slides}}}
+		</div>
+	</div>
+
+	
+	<script src="/resources/reveal.js/lib/js/head.min.js"></script>
+	<script src="/resources/reveal.js/js/reveal.js"></script>
+
+	<script>
+		Reveal.initialize({
+			controls: false,
+			loop: true,
+			keyboard: false,
+			progress: false,
+			history: true,
+			center: true,
+			speed: 'slow',
+			transition: 'fade'
+		});
+	</script>
+
+	<script>
+
+		(function() {
+
+			let currentTheme = 0;
+			let currentStyle = 0;
+			let themes = [];
+			let styles = [];
+
+			let requestResource = (path, cb) => {
+				var xhr = new XMLHttpRequest();
+				xhr.open('GET', path);
+				xhr.send(null);
+				xhr.onreadystatechange = function () {
+					if (xhr.readyState === 4 && xhr.status === 200) {
+						cb(JSON.parse(xhr.responseText));
+					}
+				};
+			}
+
+			requestResource('/config/themes', arr => {
+				themes = arr;
+			});
+			requestResource('/config/styles', arr => {
+				styles = arr;
+			});
+
+			document.onkeydown = function(e) {
+
+				e = e || window.event;
+
+				if (e.keyCode == '38') {
+					currentTheme++;
+				} else if (e.keyCode == '40') {
+					currentTheme--;
+				} else if (e.keyCode == '37') {
+					currentStyle++;
+				} else if (e.keyCode == '39') {
+					currentStyle--;
+				}
+
+				if (currentTheme >= themes.length) {
+					currentTheme = 0;
+				} else if (currentTheme < 0) {
+					currentTheme = themes.length - 1;
+				}
+
+				if (currentStyle >= styles.length) {
+					currentStyle = 0;
+				} else if (currentStyle < 0) {
+					currentStyle = styles.length - 1;
+				}
+
+				if (e.keyCode == '37' || e.keyCode == '38' || e.keyCode == '39' || e.keyCode == '40') {
+
+					let iframes = Array.from(document.getElementsByTagName("iframe")).map(iframe => iframe.contentWindow);
+					let visibleiFrameIdx = Reveal.getProgress();
+					let currentIndices = iframes[visibleiFrameIdx].Reveal.getIndices();
+					let currentProgress = iframes[visibleiFrameIdx].Reveal.getProgress();
+
+					iframes.forEach(iframe => {
+						iframe.Reveal.slide(currentIndices.h, currentIndices.v, currentIndices);
+						iframe.updateTheme(themes[currentTheme]);
+						iframe.updateStyle(styles[currentStyle]);
+
+						Array.from(document.getElementsByClassName("open")).map(anchor => {
+							anchor.href = "/presentations/{{id}}?theme=" + themes[currentTheme] + "&style=" + styles[currentStyle];
+						});
+					});
+
+					Reveal.next();
+
+				}
+			}
+
+		})();
+
+	
+
+	</script>
+
+</body>
+
+</html>
