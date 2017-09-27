@@ -20,13 +20,13 @@ class PresentationServer {
         this.presentationContainer = this.loadContainer(__dirname + '/templates/presentationContainer.mustache');
         this.configurationContainer = this.loadContainer(__dirname + '/templates/configurationContainer.mustache');
 
-        presentations.push({
+        presentations.unshift({
             id: '404',
             title: 'Presentation not found',
             path: __dirname + '/static/not-found.html'
         });
 
-        presentations.push({
+        presentations.unshift({
             id: 'demo',
             title: 'Demonstration',
             path: __dirname + '/static/demo.html'
@@ -60,18 +60,23 @@ class PresentationServer {
             theme: 'black',
             style: 'vs2015',
             controls: false,
+            loop: false
         };
     }
 
-    generateSection(presentation, idx, theme, style) {
-        let query = [];
-        theme ? query.push("theme=" + theme) : null;
-        style ? query.push("style=" + style) : null;
-        let queryStr = query.join('&')
-
+    generateSection(presentation, config) {
         return '<section data-transition="fade">' +
-            '<iframe id="frame_' + idx + '" src="/presentations/' + presentation.id + (queryStr ? '?' + queryStr : '') + '" style="width:90%;height:500px"></iframe>' +
-            '<p><a class="open" href="/presentations/' + presentation.id + (queryStr ? '?' + queryStr : '') + '">open</a></p>' +
+            '<iframe src="/presentations/' + presentation.id + '" style="width:90%;height:500px"></iframe>' +
+            '<p>' +
+            (config ?
+                '<p class="note">Use your left/right arrows to switch between different themes, while the up/down arrows to control the code highlight style</p>' +
+                '<a class="open" href="/presentations/' + presentation.id + '">Start</a>'
+                :
+                '<p class="note">Use your left/right arrows to switch between different presentations</p>' +
+                '<a href="/presentations/' + presentation.id + '">Start</a> | ' +
+                '<a href="/presentations/' + presentation.id + '/configure">Configure</a>'
+            ) +
+            '</p>' +
             '</section>';
     }
 
@@ -79,13 +84,13 @@ class PresentationServer {
         return this.clone(this.presentations)
             .filter(presentation => presentation.id != '404')
             .reduce((arr, presentation) => {
-                arr.push(this.generateSection(presentation));
+                arr.push(this.generateSection(presentation, false));
                 return arr;
             }, []).join('\n');
     }
 
     constructConfigPage(presentation) {
-        return [this.generateSection(presentation, 0), this.generateSection(presentation, 1)].join('\n');
+        return [this.generateSection(presentation, true), this.generateSection(presentation, true)].join('\n');
     }
 
     loadCSSResources(path) {
@@ -102,14 +107,14 @@ class PresentationServer {
 
     getPresentation(req) {
 
-        let findPresentation = function(id) {
+        let findPresentation = function (id) {
             return this.clone(this.presentations.find(presentation => {
                 return presentation.id == id;
             }));
         }.bind(this);
 
         let presentation = findPresentation(req.params.id);
-        
+
         if (!presentation) {
             presentation = findPresentation('404');
         }
@@ -125,52 +130,21 @@ class PresentationServer {
 
     start(port) {
 
-        port = port ? port : 3000;
+        port = port ? port : 8080;
 
         Object.keys(this.config).map(resource => {
             app.use('/' + resource, express.static(this.config[resource]));
         });
 
-        app.get('/', (req, res) => {
-
-            var presentation = Object.assign(this.clone(this.defaultSildeConfig()), {
-                title: 'Home',
-                theme: 'night',
-                slides: this.constructHomePage()
-            });
-
-            var output = Mustache.render(this.presentationContainer, presentation);
-
-            res.contentType('text/html');
-            res.send(output);
-        });
-
-        app.get('/config/themes', (req, res) => {
+        app.get('/api/themes', (req, res) => {
             res.json(this.themes);
         });
 
-        app.get('/config/styles', (req, res) => {
+        app.get('/api/styles', (req, res) => {
             res.json(this.styles);
         });
 
-        app.get('/config/:id', (req, res) => {
-
-            let presentation = this.getPresentation(req);
-
-            var content = Object.assign(this.clone(this.defaultSildeConfig()), {
-                id: presentation.id,
-                title: 'Presentation Configuration',
-                theme: 'night',
-                slides: this.constructConfigPage(presentation)
-            });
-
-            var output = Mustache.render(this.configurationContainer, content);
-
-            res.contentType('text/html');
-            res.send(output);
-        });
-
-        app.get('/presentations', (req, res) => {
+        app.get('/api/presentations', (req, res) => {
             res.json(this.clone(this.presentations)
                 .filter(presentation => presentation.id != '404')
                 .map(presentation => {
@@ -179,15 +153,37 @@ class PresentationServer {
                 }));
         });
 
-        app.get('/presentations/:id', (req, res) => {
-            
-            let presentation = this.getPresentation(req);
-
+        app.get('/', (req, res) => {
+            var presentation = Object.assign(this.clone(this.defaultSildeConfig()), {
+                title: 'Home',
+                theme: 'night',
+                slides: this.constructHomePage(),
+                loop: true
+            });
             var output = Mustache.render(this.presentationContainer, presentation);
-
             res.contentType('text/html');
             res.send(output);
+        });
 
+        app.get('/presentations/:id', (req, res) => {
+            let presentation = this.getPresentation(req);
+            var output = Mustache.render(this.presentationContainer, presentation);
+            res.contentType('text/html');
+            res.send(output);
+        });
+
+        app.get('/presentations/:id/configure', (req, res) => {
+            let presentation = this.getPresentation(req);
+            var content = Object.assign(this.clone(this.defaultSildeConfig()), {
+                id: presentation.id,
+                title: 'Presentation Configuration',
+                theme: presentation.theme,
+                style: presentation.style,
+                slides: this.constructConfigPage(presentation)
+            });
+            var output = Mustache.render(this.configurationContainer, content);
+            res.contentType('text/html');
+            res.send(output);
         });
 
         app.listen(port, (err) => {
