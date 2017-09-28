@@ -88,7 +88,7 @@ Here you're able to dynamically alter the presetations default theme and code hi
 ## Backend (API)
 
 **GET** `/api/presentations`
-```json
+```js
 [{
     id: "string",
     title: "string",
@@ -100,12 +100,12 @@ Here you're able to dynamically alter the presetations default theme and code hi
 ```
 
 **GET** `/api/themes`
-```json
+```js
 ["string", "string", ...]
 ```
 
 **GET** `/api/styles`
-```json
+```js
 ["string", "string", ...]
 ```
 
