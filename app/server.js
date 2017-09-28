@@ -39,11 +39,10 @@ class PresentationServer {
                 throw "Unable to load presentation path -> '" + presentation.path + "'";
             }
             return presentation;
-        }).map(presentations => Object.assign(this.defaultSildeConfig(), presentations));
+        }).map(presentations => this.buildConfig(presentations));
 
         this.themes = this.loadCSSResources(this.config.themes);
         this.styles = this.loadCSSResources(this.config.styles);
-
     }
 
     loadContainer(path) {
@@ -52,45 +51,6 @@ class PresentationServer {
         } catch (err) {
             throw "Unable to load container '" + path + "' -> " + err;
         }
-    }
-
-    defaultSildeConfig() {
-        return {
-            title: 'Presentation',
-            theme: 'black',
-            style: 'vs2015',
-            controls: false,
-            loop: false
-        };
-    }
-
-    generateSection(presentation, config) {
-        return '<section data-transition="fade">' +
-            '<iframe src="/presentations/' + presentation.id + '" style="width:90%;height:500px"></iframe>' +
-            '<p>' +
-            (config ?
-                '<p class="note">Use your left/right arrows to switch between different themes, while the up/down arrows to control the code highlight style</p>' +
-                '<a class="open" href="/presentations/' + presentation.id + '">Start</a>'
-                :
-                '<p class="note">Use your left/right arrows to switch between different presentations</p>' +
-                '<a href="/presentations/' + presentation.id + '">Start</a> | ' +
-                '<a href="/presentations/' + presentation.id + '/configure">Configure</a>'
-            ) +
-            '</p>' +
-            '</section>';
-    }
-
-    constructHomePage() {
-        return this.clone(this.presentations)
-            .filter(presentation => presentation.id != '404')
-            .reduce((arr, presentation) => {
-                arr.push(this.generateSection(presentation, false));
-                return arr;
-            }, []).join('\n');
-    }
-
-    constructConfigPage(presentation) {
-        return [this.generateSection(presentation, true), this.generateSection(presentation, true)].join('\n');
     }
 
     loadCSSResources(path) {
@@ -105,12 +65,54 @@ class PresentationServer {
         }
     }
 
+    clone(obj) {
+        return JSON.parse(JSON.stringify(obj));
+    }
+
+    buildConfig(config) {
+        return Object.assign({
+            title: 'Presentation',
+            theme: 'black',
+            style: 'vs2015',
+            controls: false,
+            loop: false
+        }, config);
+    }
+
+    generateSection(presentation, config) {
+        return '<section data-transition="' + (config ? 'fade' : 'concave') + '">' +
+            '<iframe src="/presentations/' + presentation.id + '" style="width:90%;height:500px"></iframe>' +
+            (config ?
+                '<p class="note">Use your left/right arrows to switch between different themes, while the up/down arrows to control the code highlight style</p>' +
+                '<p class="note selection">Theme: <strong>default</strong> Style: <strong>default</strong></p>' +
+                '<a class="note"href="/presentations/' + presentation.id + '">Start</a>'
+                :
+                '<p class="note">Use your left/right arrows to switch between different presentations</p>' +
+                '<a class="note"href="/presentations/' + presentation.id + '">Start</a> | ' +
+                '<a class="note"href="/presentations/' + presentation.id + '/configure">Configure</a>'
+            ) +
+            '</section>';
+    }
+
+    constructHomePage() {
+        return this.presentations
+            .filter(presentation => presentation.id != '404')
+            .reduce((arr, presentation) => {
+                arr.push(this.generateSection(presentation, false));
+                return arr;
+            }, []).join('\n');
+    }
+
+    constructConfigPage(presentation) {
+        return [this.generateSection(presentation, true), this.generateSection(presentation, true)].join('\n');
+    }
+
     getPresentation(req) {
 
         let findPresentation = function (id) {
-            return this.clone(this.presentations.find(presentation => {
+            return this.presentations.find(presentation => {
                 return presentation.id == id;
-            }));
+            });
         }.bind(this);
 
         let presentation = findPresentation(req.params.id);
@@ -119,13 +121,11 @@ class PresentationServer {
             presentation = findPresentation('404');
         }
 
+        presentation = this.clone(presentation);
+
         presentation.theme = req.query.theme && this.themes.indexOf(req.query.theme) > -1 ? req.query.theme : presentation.theme;
         presentation.style = req.query.style && this.styles.indexOf(req.query.style) > -1 ? req.query.style : presentation.style;
         return presentation;
-    }
-
-    clone(obj) {
-        return JSON.parse(JSON.stringify(obj));
     }
 
     start(port) {
@@ -149,12 +149,17 @@ class PresentationServer {
                 .filter(presentation => presentation.id != '404')
                 .map(presentation => {
                     delete presentation.slides;
+                    delete presentation.path;
                     return presentation
                 }));
         });
 
         app.get('/', (req, res) => {
-            var presentation = Object.assign(this.clone(this.defaultSildeConfig()), {
+            res.redirect('/presentations');
+        });
+
+        app.get('/presentations', (req, res) => {
+            var presentation = this.buildConfig({
                 title: 'Home',
                 theme: 'night',
                 slides: this.constructHomePage(),
@@ -174,11 +179,12 @@ class PresentationServer {
 
         app.get('/presentations/:id/configure', (req, res) => {
             let presentation = this.getPresentation(req);
-            var content = Object.assign(this.clone(this.defaultSildeConfig()), {
+            var content = this.buildConfig({
                 id: presentation.id,
                 title: 'Presentation Configuration',
-                theme: presentation.theme,
-                style: presentation.style,
+                theme: 'night',
+                defaultTheme: presentation.theme,
+                defaultStyle: presentation.style,
                 slides: this.constructConfigPage(presentation)
             });
             var output = Mustache.render(this.configurationContainer, content);

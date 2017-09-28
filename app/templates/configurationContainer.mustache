@@ -15,19 +15,18 @@
 	<link rel="stylesheet" href="/themes/{{theme}}.css" id="theme">
 
 	<style>
-		.reveal p.note {
+		.reveal .note {
 			text-align: center;
 			font-family: "Open Sans", sans-serif;
 			font-size: 40%;
-			font-weight: normal;
-			color: #eee;
+			font-weight: normal; //color: #eee;
 		}
 	</style>
 
 </head>
 
 <body>
-	
+
 	<div class="reveal">
 		<div class="slides">
 			{{{slides}}}
@@ -45,7 +44,7 @@
 			progress: false,
 			history: true,
 			center: true,
-			speed: 'slow',
+			transitionSpeed: 'slow',
 			transition: 'fade'
 		});
 	</script>
@@ -54,9 +53,21 @@
 		(function () {
 
 			let currentTheme = null;
-			let currentStyle = null
+			let currentStyle = null;
 			let themes = [];
 			let styles = [];
+
+			let iframes = Array.from(
+				document.getElementsByTagName("iframe")
+			).map(iframe => {
+				iframe.onload = (e) => {
+					iframe.contentWindow.Reveal.configure({ controls: true, keyboard: false });
+					iframe.contentWindow.disableArrowKeys();
+				};
+				return iframe;
+			}).map(iframe => {
+				return iframe.contentWindow;
+			});
 
 			let requestResource = (path, cb) => {
 				var xhr = new XMLHttpRequest();
@@ -69,16 +80,7 @@
 				};
 			}
 
-			requestResource('/api/themes', arr => {
-				themes = arr;
-			});
-			requestResource('/api/styles', arr => {
-				styles = arr;
-			});
-
-			document.onkeydown = function (e) {
-
-				e = e || window.event;
+			let updateiFrames = (keyCode) => {
 
 				const LEFT = 37;
 				const RIGHT = 39;
@@ -86,9 +88,9 @@
 				const DOWN = 40;
 
 				if (Number.isInteger(currentTheme)) {
-					if (e.keyCode == RIGHT) {
+					if (keyCode == RIGHT) {
 						currentTheme++;
-					} else if (e.keyCode == LEFT) {
+					} else if (keyCode == LEFT) {
 						currentTheme--;
 					}
 					if (currentTheme >= themes.length) {
@@ -96,14 +98,14 @@
 					} else if (currentTheme < 0) {
 						currentTheme = themes.length - 1;
 					}
-				} else if (e.keyCode == LEFT || e.keyCode == RIGHT) {
+				} else if (keyCode == LEFT || keyCode == RIGHT) {
 					currentTheme = 0;
 				}
 
 				if (Number.isInteger(currentStyle)) {
-					if (e.keyCode == UP) {
+					if (keyCode == UP) {
 						currentStyle++;
-					} else if (e.keyCode == DOWN) {
+					} else if (keyCode == DOWN) {
 						currentStyle--;
 					}
 					if (currentStyle >= styles.length) {
@@ -111,38 +113,57 @@
 					} else if (currentStyle < 0) {
 						currentStyle = styles.length - 1;
 					}
-				} else if (e.keyCode == UP || e.keyCode == DOWN) {
+				} else if (keyCode == UP || keyCode == DOWN) {
 					currentStyle = 0;
 				}
 
-				if (e.keyCode == LEFT || e.keyCode == RIGHT || e.keyCode == UP || e.keyCode == DOWN) {
+				if (keyCode == LEFT || keyCode == RIGHT || keyCode == UP || keyCode == DOWN) {
 
-					let iframes = Array.from(document.getElementsByTagName("iframe")).map(iframe => iframe.contentWindow);
 					let visibleiFrameIdx = Reveal.getProgress();
 					let currentIndices = iframes[visibleiFrameIdx].Reveal.getIndices();
 					let currentProgress = iframes[visibleiFrameIdx].Reveal.getProgress();
 
+					let chosenTheme = themes[currentTheme] ? themes[currentTheme] : "{{defaultTheme}}";
+					let chosenStyle = styles[currentStyle] ? styles[currentStyle] : "{{defaultStyle}}";
+
 					iframes.forEach(iframe => {
-
-						let chosenTheme = themes[currentTheme] ? themes[currentTheme] : "{{theme}}";
-						let chosenStyle = styles[currentStyle] ? styles[currentStyle] : "{{style}}";
-
-						console.info("chosenTheme", chosenTheme);
-						console.info("chosenStyle", chosenStyle);
-
 						iframe.Reveal.slide(currentIndices.h, currentIndices.v, currentIndices);
 						iframe.updateTheme(chosenTheme);
 						iframe.updateStyle(chosenStyle);
+					});
 
-						Array.from(document.getElementsByClassName("open")).map(anchor => {
-							anchor.href = "/presentations/{{id}}?theme=" + chosenTheme + "&style=" + chosenStyle;
-						});
+					Array.from(document.getElementsByTagName("a")).map(anchor => {
+						anchor.href = "/presentations/{{id}}?theme=" + chosenTheme + "&style=" + chosenStyle;
+						anchor.text = "Start";
+					});
+
+					Array.from(document.getElementsByClassName("selection")).map(span => {
+						span.innerHTML = "Theme: <strong>" + chosenTheme + "</strong> Style: <strong>" + chosenStyle + "</strong>";
 					});
 
 					Reveal.next();
 
 				}
-			}
+			};
+
+			window.onload = (e) => {
+				
+				requestResource('/api/themes', arr => {
+					themes = arr;
+				});
+
+				requestResource('/api/styles', arr => {
+					styles = arr;
+				});
+
+				document.addEventListener('iFrameKeyPress', function (e) {
+					window.focus();
+					updateiFrames(e.detail.keyCode);
+				}, false);
+
+				document.onkeydown = (e) => updateiFrames((e || window.event).keyCode);
+
+			};
 
 		})();
 	</script>
