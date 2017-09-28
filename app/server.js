@@ -194,4 +194,4 @@ class PresentationServer {
 
 }
 
-module.exports = (presentations) => new PresentationServer(presentations);
+module.exports = (presentations, config) => new PresentationServer(presentations, config);
