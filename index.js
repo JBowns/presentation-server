@@ -1,5 +1,3 @@
-let PresentationServer = require('./lib/Server');
+'use strict';
 
-module.exports = {
-    PresentationServer
-};
+module.exports = require('./lib/Server');
