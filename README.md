@@ -66,7 +66,7 @@ let app = PresentationServer([{
 
 Your images will be now be accessible from `/images`.
 
-> **Note:** Some paths have already been defined such as `/resources`, `/themes` and `/styles` you're welcome to override these endpoints inject your own themes :wink:. Although I would recommend leaving `/resources` alone as it points to the reaveal.js dependencies and plugins.
+> **Note:** Some paths have already been defined such as `/resources`, `/themes` and `/styles` you're welcome to override these endpoints, that way you could define your own themes/styles :wink:. Although I would recommend leaving `/resources` alone - it points to the reveal.js dependencies and plugins.
 
 
 ## Frontend (HTML)
