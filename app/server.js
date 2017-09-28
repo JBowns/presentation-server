@@ -32,6 +32,12 @@ class PresentationServer {
             path: __dirname + '/static/demo.html'
         });
 
+        presentations.forEach(function(presentation) {
+            if (presentations.filter(p => p.id == presentation.id).length > 1) {
+                throw "Duplicate presentation id detected, please rename '" + presentation.id + "'";
+            }
+        });
+
         this.presentations = presentations.map(presentation => {
             try {
                 presentation.slides = fs.readFileSync(presentation.path).toString();
