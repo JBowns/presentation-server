@@ -1,10 +1,5 @@
-let PresentationServer = require('./app/server.js');
+let PresentationServer = require('./lib/Server');
 
-let server = PresentationServer([{
-    id: 'session',
-    title: 'Session Service',
-    path: __dirname + '/presentations/session-service.html',
-    theme: 'black'
-}]);
-
-server.start(80);
+module.exports = {
+    PresentationServer
+};
