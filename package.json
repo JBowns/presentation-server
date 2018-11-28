@@ -15,9 +15,9 @@
   "homepage": "https://github.com/JBowns/presentation-server#readme",
   "dependencies": {
     "express": "^4.15.5",
+    "highlight.js": "isagalaev/highlight.js",
     "mustache": "^2.3.0",
-    "reveal.js": "git+ssh://git@github.com/hakimel/reveal.js.git",
-    "highlight.js": "git+ssh://git@github.com:isagalaev/highlight.js.git"
+    "reveal.js": "hakimel/reveal.js"
   },
   "devDependencies": {
     "nodemon": "^1.12.1"
